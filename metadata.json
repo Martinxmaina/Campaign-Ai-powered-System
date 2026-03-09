@@ -1,7 +1,0 @@
-{
-  "name": "Campaign Pulse",
-  "description": "A comprehensive campaign intelligence and voter management platform with real-time analytics, social listening, and AI-driven strategy insights.",
-  "requestFramePermissions": [
-    "geolocation"
-  ]
-}
