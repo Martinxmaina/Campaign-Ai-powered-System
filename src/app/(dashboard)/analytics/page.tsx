@@ -1,4 +1,6 @@
-import { BarChart3, TrendingUp, Users, Globe, Download, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { BarChart3, TrendingUp, Users, Globe, Download } from "lucide-react";
+import ExecutiveKpiCard from "@/components/charts/ExecutiveKpiCard";
+import ExecutiveBarChart from "@/components/charts/ExecutiveBarChart";
 
 const kpis = [
     { label: "Overall Reach", value: "2.4M", change: "+18.3%", up: true, icon: Globe, iconBg: "bg-blue-50", iconColor: "text-blue-600" },
@@ -41,45 +43,32 @@ export default function AnalyticsPage() {
                 {kpis.map((kpi) => {
                     const Icon = kpi.icon;
                     return (
-                        <div key={kpi.label} className="stat-card bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                            <div className="flex items-center justify-between mb-3">
-                                <span className="text-slate-500 text-xs font-medium uppercase tracking-wide">{kpi.label}</span>
-                                <div className={`p-2 ${kpi.iconBg} ${kpi.iconColor} rounded-lg`}><Icon className="h-4 w-4" /></div>
-                            </div>
-                            <div className="flex items-baseline gap-2">
-                                <h3 className="text-2xl font-bold text-slate-900">{kpi.value}</h3>
-                                <span className={`text-xs font-medium flex items-center gap-0.5 ${kpi.up ? "text-emerald-600" : "text-red-500"}`}>
-                                    {kpi.up ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}{kpi.change}
-                                </span>
-                            </div>
-                        </div>
+                        <ExecutiveKpiCard
+                            key={kpi.label}
+                            label={kpi.label}
+                            value={kpi.value}
+                            change={kpi.change}
+                            positive={kpi.up}
+                            icon={<Icon className="h-4 w-4" />}
+                        />
                     );
                 })}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm">
-                    <div className="px-6 py-4 border-b border-slate-100"><h3 className="text-sm font-semibold text-slate-900">Channel Performance</h3></div>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                            <thead><tr className="border-b border-slate-100 text-left text-slate-500">
-                                <th className="px-6 py-3 font-medium text-xs uppercase tracking-wide">Channel</th>
-                                <th className="px-6 py-3 font-medium text-xs uppercase tracking-wide">Sent</th>
-                                <th className="px-6 py-3 font-medium text-xs uppercase tracking-wide">Delivered</th>
-                                <th className="px-6 py-3 font-medium text-xs uppercase tracking-wide">Response</th>
-                            </tr></thead>
-                            <tbody className="divide-y divide-slate-50">
-                                {channelPerformance.map((ch) => (
-                                    <tr key={ch.channel} className="table-row-hover">
-                                        <td className="px-6 py-3 font-medium text-slate-900 flex items-center gap-2"><div className={`w-2 h-2 rounded-full ${ch.color}`} />{ch.channel}</td>
-                                        <td className="px-6 py-3 text-slate-600">{ch.sent}</td>
-                                        <td className="px-6 py-3 text-slate-600">{ch.delivered}</td>
-                                        <td className="px-6 py-3 font-semibold text-blue-600">{ch.response}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                <div className="lg:col-span-2">
+                    <ExecutiveBarChart
+                        title="Channel Performance"
+                        subtitle="Response rate by channel"
+                        data={channelPerformance.map((ch) => ({
+                            channel: ch.channel,
+                            response: parseFloat(ch.response.replace("%", "")),
+                        }))}
+                        xKey="channel"
+                        yKey="response"
+                        valueLabel="Response rate (%)"
+                        color="#2563eb"
+                    />
                 </div>
 
                 <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">

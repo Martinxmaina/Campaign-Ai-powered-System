@@ -1,4 +1,7 @@
 import { ArrowDownRight, ArrowUpRight, Download, PieChart, Wallet } from "lucide-react";
+import ExecutiveKpiCard from "@/components/charts/ExecutiveKpiCard";
+import ExecutiveBarChart from "@/components/charts/ExecutiveBarChart";
+import ExecutiveLineChart from "@/components/charts/ExecutiveLineChart";
 
 interface FinanceStat {
     label: string;
@@ -36,21 +39,21 @@ const stats: FinanceStat[] = [
 ];
 
 const expenseBreakdown: ExpenseCategory[] = [
-    { name: "Media & Ads", amount: "KSh 210M", share: 44 },
-    { name: "Field Operations", amount: "KSh 120M", share: 25 },
-    { name: "Logistics & Travel", amount: "KSh 65M", share: 14 },
-    { name: "Research & Polling", amount: "KSh 40M", share: 9 },
-    { name: "Compliance & Legal", amount: "KSh 25M", share: 5 },
-    { name: "Other", amount: "KSh 20M", share: 3 },
+    { name: "Media & Ads", amount: "KSh 210M", share: 40 },
+    { name: "Field Operations", amount: "KSh 120M", share: 23 },
+    { name: "Logistics & Travel", amount: "KSh 65M", share: 13 },
+    { name: "Research & Polling", amount: "KSh 40M", share: 8 },
+    { name: "Compliance & Legal", amount: "KSh 25M", share: 6 },
+    { name: "Other", amount: "KSh 20M", share: 10 },
 ];
 
 const cashFlow: CashFlowPoint[] = [
     { period: "Jan", inflow: 95, outflow: 72 },
-    { period: "Feb", inflow: 80, outflow: 76 },
-    { period: "Mar", inflow: 110, outflow: 90 },
-    { period: "Apr", inflow: 130, outflow: 105 },
-    { period: "May", inflow: 120, outflow: 118 },
-    { period: "Jun", inflow: 140, outflow: 132 },
+    { period: "Feb", inflow: 84, outflow: 76 },
+    { period: "Mar", inflow: 112, outflow: 92 },
+    { period: "Apr", inflow: 128, outflow: 104 },
+    { period: "May", inflow: 122, outflow: 110 },
+    { period: "Jun", inflow: 138, outflow: 124 },
 ];
 
 const financeReports: FinanceReport[] = [
@@ -124,132 +127,41 @@ export default function FinancePage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {stats.map((stat) => (
-                    <div
+                    <ExecutiveKpiCard
                         key={stat.label}
-                        className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm"
-                    >
-                        <div className="flex items-center justify-between mb-3">
-                            <span className="text-slate-500 text-xs font-medium uppercase tracking-wide">
-                                {stat.label}
-                            </span>
-                            <div className="p-2 bg-slate-50 rounded-lg text-slate-500">
-                                <Wallet className="h-4 w-4" />
-                            </div>
-                        </div>
-                        <div className="flex items-baseline gap-2">
-                            <h3 className="text-2xl font-bold text-slate-900">{stat.value}</h3>
-                            <span
-                                className={`text-xs font-medium flex items-center gap-0.5 ${
-                                    stat.positive ? "text-emerald-600" : "text-red-500"
-                                }`}
-                            >
-                                {stat.positive ? (
-                                    <ArrowUpRight className="h-3 w-3" />
-                                ) : (
-                                    <ArrowDownRight className="h-3 w-3" />
-                                )}
-                                {stat.change}
-                            </span>
-                        </div>
-                    </div>
+                        label={stat.label}
+                        value={stat.value}
+                        change={stat.change}
+                        positive={stat.positive}
+                        icon={<Wallet className="h-4 w-4" />}
+                    />
                 ))}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm lg:col-span-2">
-                    <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-                        <div>
-                            <h3 className="text-sm font-semibold text-slate-900">
-                                Expense breakdown by category
-                            </h3>
-                            <p className="text-xs text-slate-500 mt-0.5">
-                                How campaign shillings are allocated across major cost centers.
-                            </p>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-slate-500">
-                            <PieChart className="h-3.5 w-3.5" />
-                            % of total spend
-                        </div>
-                    </div>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="border-b border-slate-100 text-left text-slate-500">
-                                    <th className="px-6 py-3 font-medium text-xs uppercase tracking-wide">
-                                        Category
-                                    </th>
-                                    <th className="px-6 py-3 font-medium text-xs uppercase tracking-wide">
-                                        Amount
-                                    </th>
-                                    <th className="px-6 py-3 font-medium text-xs uppercase tracking-wide">
-                                        Share
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-50">
-                                {expenseBreakdown.map((row) => (
-                                    <tr key={row.name} className="table-row-hover">
-                                        <td className="px-6 py-3 font-medium text-slate-900">
-                                            {row.name}
-                                        </td>
-                                        <td className="px-6 py-3 text-slate-600">{row.amount}</td>
-                                        <td className="px-6 py-3">
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-24 bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                                                    <div
-                                                        className="bg-blue-600 h-full rounded-full"
-                                                        style={{ width: `${row.share}%` }}
-                                                    />
-                                                </div>
-                                                <span className="text-xs font-semibold text-slate-900">
-                                                    {row.share}%
-                                                </span>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                <div className="lg:col-span-2">
+                    <ExecutiveBarChart
+                        title="Expense breakdown by category"
+                        subtitle="How campaign shillings are allocated across major cost centers"
+                        data={expenseBreakdown}
+                        xKey="name"
+                        yKey="share"
+                        valueLabel="% of total spend"
+                        color="#2563eb"
+                    />
                 </div>
 
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-                    <div className="px-6 py-4 border-b border-slate-100">
-                        <h3 className="text-sm font-semibold text-slate-900">
-                            Monthly cash flow
-                        </h3>
-                        <p className="text-xs text-slate-500 mt-0.5">
-                            Inflows vs outflows (KSh M) for the current half-year.
-                        </p>
-                    </div>
-                    <div className="p-6 space-y-3">
-                        {cashFlow.map((row) => (
-                            <div key={row.period} className="space-y-1">
-                                <div className="flex items-center justify-between text-xs">
-                                    <span className="font-medium text-slate-700">
-                                        {row.period}
-                                    </span>
-                                    <span className="text-slate-500">
-                                        {row.inflow}M in / {row.outflow}M out
-                                    </span>
-                                </div>
-                                <div className="flex gap-1">
-                                    <div className="flex-1 bg-emerald-100 h-2 rounded-full overflow-hidden">
-                                        <div
-                                            className="bg-emerald-500 h-full rounded-full"
-                                            style={{ width: `${Math.min(row.inflow, 120)}%` }}
-                                        />
-                                    </div>
-                                    <div className="flex-1 bg-red-100 h-2 rounded-full overflow-hidden">
-                                        <div
-                                            className="bg-red-500 h-full rounded-full"
-                                            style={{ width: `${Math.min(row.outflow, 120)}%` }}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                <div>
+                    <ExecutiveLineChart
+                        title="Monthly cash flow"
+                        subtitle="Inflows vs outflows (KSh M) for the current half-year"
+                        data={cashFlow}
+                        xKey="period"
+                        series={[
+                            { dataKey: "inflow", label: "Inflows (KSh M)", color: "#22c55e" },
+                            { dataKey: "outflow", label: "Outflows (KSh M)", color: "#ef4444" },
+                        ]}
+                    />
                 </div>
             </div>
 

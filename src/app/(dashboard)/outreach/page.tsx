@@ -1,4 +1,7 @@
 import { Download, Users, Filter, CalendarDays, BarChart3, ArrowUpRight } from "lucide-react";
+import ExecutiveKpiCard from "@/components/charts/ExecutiveKpiCard";
+import ExecutiveBarChart from "@/components/charts/ExecutiveBarChart";
+import ExecutiveLineChart from "@/components/charts/ExecutiveLineChart";
 
 interface OutreachFunnelStat {
     label: string;
@@ -32,6 +35,17 @@ const segments: OutreachContactSegment[] = [
     { name: "Persuadables", count: "56,120", trend: "up" },
     { name: "Undecided", count: "34,980", trend: "flat" },
     { name: "At risk", count: "12,411", trend: "down" },
+];
+
+const weeklyContacts = [
+    { week: "W1", contacts: 3820 },
+    { week: "W2", contacts: 4100 },
+    { week: "W3", contacts: 4380 },
+    { week: "W4", contacts: 4620 },
+    { week: "W5", contacts: 5010 },
+    { week: "W6", contacts: 5420 },
+    { week: "W7", contacts: 5720 },
+    { week: "W8", contacts: 5940 },
 ];
 
 const outreachReports: OutreachReport[] = [
@@ -97,103 +111,48 @@ export default function OutreachPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {funnelStats.map((stat) => (
-                    <div key={stat.label} className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                        <div className="flex items-center justify-between mb-3">
-                            <span className="text-slate-500 text-xs font-medium uppercase tracking-wide">
-                                {stat.label}
-                            </span>
-                            <div className="p-2 bg-slate-50 rounded-lg text-slate-500">
-                                <Users className="h-4 w-4" />
-                            </div>
-                        </div>
-                        <div className="flex items-baseline gap-2">
-                            <h3 className="text-2xl font-bold text-slate-900">{stat.value}</h3>
-                            <span className="text-xs font-medium flex items-center gap-0.5 text-emerald-600">
-                                <ArrowUpRight className="h-3 w-3" />
-                                {stat.change}
-                            </span>
-                        </div>
-                    </div>
+                    <ExecutiveKpiCard
+                        key={stat.label}
+                        label={stat.label}
+                        value={stat.value}
+                        change={stat.change}
+                        positive={!stat.change.startsWith("-")}
+                        icon={<Users className="h-4 w-4" />}
+                    />
                 ))}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm lg:col-span-2">
-                    <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-                        <div>
-                            <h3 className="text-sm font-semibold text-slate-900">
-                                Contacts & segments
-                            </h3>
-                            <p className="text-xs text-slate-500 mt-0.5">
-                                Key audience groups the outreach and comms teams work with.
-                            </p>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-slate-500">
-                            <BarChart3 className="h-3.5 w-3.5" />
-                            Breakdown
-                        </div>
-                    </div>
-                    <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {segments.map((segment) => (
-                            <div
-                                key={segment.name}
-                                className="border border-slate-100 rounded-lg p-4 flex items-center justify-between"
-                            >
-                                <div>
-                                    <p className="text-sm font-medium text-slate-900">
-                                        {segment.name}
-                                    </p>
-                                    <p className="text-xs text-slate-500 mt-0.5">
-                                        {segment.count} contacts
-                                    </p>
-                                </div>
-                                <span
-                                    className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                                        segment.trend === "up"
-                                            ? "bg-emerald-50 text-emerald-600"
-                                            : segment.trend === "down"
-                                            ? "bg-red-50 text-red-600"
-                                            : "bg-slate-100 text-slate-600"
-                                    }`}
-                                >
-                                    {segment.trend === "up"
-                                        ? "Growing"
-                                        : segment.trend === "down"
-                                        ? "Shrinking"
-                                        : "Stable"}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
+                <div className="lg:col-span-2">
+                    <ExecutiveBarChart
+                        title="Contacts & segments"
+                        subtitle="Key audience groups the outreach and comms teams work with"
+                        data={segments.map((segment) => ({
+                            name: segment.name,
+                            contacts: parseInt(segment.count.replace(/,/g, ""), 10),
+                        }))}
+                        xKey="name"
+                        yKey="contacts"
+                        valueLabel="Contacts"
+                        color="#2563eb"
+                        horizontal
+                    />
                 </div>
 
                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-                    <div className="px-6 py-4 border-b border-slate-100">
-                        <h3 className="text-sm font-semibold text-slate-900">
-                            Upcoming comms moments
-                        </h3>
-                        <p className="text-xs text-slate-500 mt-0.5">
-                            High-impact content and events the team is preparing for.
-                        </p>
-                    </div>
-                    <div className="p-6 space-y-3 text-xs text-slate-600">
-                        <div>
-                            <p className="font-medium text-slate-900">
-                                Nationwide cost of living address
-                            </p>
-                            <p className="text-slate-500">
-                                Live TV + social cutdowns · Next Tuesday
-                            </p>
-                        </div>
-                        <div>
-                            <p className="font-medium text-slate-900">
-                                Youth jobs announcement – digital push
-                            </p>
-                            <p className="text-slate-500">
-                                TikTok, IG Reels, campus tours · In 10 days
-                            </p>
-                        </div>
-                    </div>
+                    <ExecutiveLineChart
+                        title="New contacts over time"
+                        subtitle="Weekly growth in outreach contacts"
+                        data={weeklyContacts}
+                        xKey="week"
+                        series={[
+                            {
+                                dataKey: "contacts",
+                                label: "New contacts",
+                                color: "#16a34a",
+                            },
+                        ]}
+                    />
                 </div>
             </div>
 

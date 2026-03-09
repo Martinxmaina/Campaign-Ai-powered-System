@@ -6,6 +6,7 @@ import {
     Send, Heart, Mic, AlertTriangle, ArrowUpRight, RefreshCw,
 } from "lucide-react";
 import KenyaHeatmap from "@/components/dashboard/KenyaHeatmap";
+import ExecutiveLineChart from "@/components/charts/ExecutiveLineChart";
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 const stats = [
@@ -45,75 +46,6 @@ const sentimentData = {
     weekly: [52, 55, 54, 58, 60, 57, 62, 61, 63, 65, 64, 67, 68, 66, 68],
     monthly: [48, 50, 51, 53, 52, 55, 56, 55, 58, 60, 59, 61, 63, 62, 64, 65, 63, 66, 67, 65, 67, 68, 67, 69, 68, 70, 68, 70, 71, 68],
 };
-
-function SentimentChart({ period }: { period: "weekly" | "monthly" }) {
-    const data = sentimentData[period];
-    const max = 100;
-    const min = 40;
-    const range = max - min;
-    const w = 1000;
-    const h = 200;
-    const pad = { t: 16, b: 24, l: 32, r: 16 };
-    const chartW = w - pad.l - pad.r;
-    const chartH = h - pad.t - pad.b;
-
-    const pts = data.map((v, i) => {
-        const x = pad.l + (i / (data.length - 1)) * chartW;
-        const y = pad.t + chartH - ((v - min) / range) * chartH;
-        return `${x},${y}`;
-    });
-    const polyline = pts.join(" ");
-    const areaPath = `M${pts[0]} L${pts.slice(1).join(" L")} L${pad.l + chartW},${pad.t + chartH} L${pad.l},${pad.t + chartH} Z`;
-
-    // Y grid lines
-    const yLines = [50, 60, 70, 80];
-
-    return (
-        <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="w-full h-full">
-            <defs>
-                <linearGradient id="grad" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="#2563eb" stopOpacity="0.15" />
-                    <stop offset="100%" stopColor="#2563eb" stopOpacity="0" />
-                </linearGradient>
-            </defs>
-            {/* Y grid */}
-            {yLines.map((v) => {
-                const y = pad.t + chartH - ((v - min) / range) * chartH;
-                return (
-                    <g key={v}>
-                        <line x1={pad.l} y1={y} x2={pad.l + chartW} y2={y} stroke="#f1f5f9" strokeWidth="1.5" />
-                        <text x={pad.l - 4} y={y + 4} textAnchor="end" fontSize="9" fill="#94a3b8">{v}%</text>
-                    </g>
-                );
-            })}
-            {/* Area */}
-            <path d={areaPath} fill="url(#grad)" />
-            {/* Line */}
-            <polyline points={polyline} fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
-            {/* Dots — only every 5th point */}
-            {data.map((v, i) => {
-                if (i % 5 !== 0 && i !== data.length - 1) return null;
-                const [x, y] = pts[i].split(",").map(Number);
-                return (
-                    <g key={i}>
-                        <circle cx={x} cy={y} r="5" fill="white" stroke="#2563eb" strokeWidth="2" />
-                        <text x={x} y={y - 10} textAnchor="middle" fontSize="9" fill="#2563eb" fontWeight="bold">{v}%</text>
-                    </g>
-                );
-            })}
-            {/* X labels */}
-            {(period === "weekly"
-                ? ["W1", "W3", "W6", "W9", "W12", "W15"]
-                : ["D1", "D5", "D10", "D15", "D20", "D25", "D30"]
-            ).map((label, i, arr) => {
-                const x = pad.l + (i / (arr.length - 1)) * chartW;
-                return (
-                    <text key={label} x={x} y={h - 4} textAnchor="middle" fontSize="9" fill="#94a3b8">{label}</text>
-                );
-            })}
-        </svg>
-    );
-}
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function DashboardPage() {
@@ -172,16 +104,23 @@ export default function DashboardPage() {
             <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                     <div>
-                        <h3 className="text-sm font-semibold text-slate-900">Voter Sentiment Trends</h3>
-                        <p className="text-xs text-slate-400 mt-0.5">Positive sentiment % over time</p>
+                        <h3 className="text-sm font-semibold text-slate-900">
+                            Voter Sentiment Trends
+                        </h3>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                            Positive sentiment % over time
+                        </p>
                     </div>
                     <div className="flex gap-0.5 bg-slate-100 p-0.5 rounded-lg">
                         {(["weekly", "monthly"] as const).map((p) => (
                             <button
                                 key={p}
                                 onClick={() => setChartPeriod(p)}
-                                className={`px-3 py-1 text-[11px] font-medium rounded-md transition-all capitalize ${chartPeriod === p ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
-                                    }`}
+                                className={`px-3 py-1 text-[11px] font-medium rounded-md transition-all capitalize ${
+                                    chartPeriod === p
+                                        ? "bg-white text-slate-900 shadow-sm"
+                                        : "text-slate-500 hover:text-slate-700"
+                                }`}
                             >
                                 {p}
                             </button>
@@ -189,7 +128,29 @@ export default function DashboardPage() {
                     </div>
                 </div>
                 <div className="h-52 w-full">
-                    <SentimentChart period={chartPeriod} />
+                    <ExecutiveLineChart
+                        title=""
+                        subtitle={chartPeriod === "weekly" ? "Last 15 weeks" : "Last 30 days"}
+                        data={sentimentData[chartPeriod].map((v, index) => ({
+                            label:
+                                chartPeriod === "weekly"
+                                    ? `W${index + 1}`
+                                    : `D${index + 1}`,
+                            value: v,
+                        }))}
+                        xKey="label"
+                        series={[
+                            {
+                                dataKey: "value",
+                                label: "Positive sentiment (%)",
+                                color: "#2563eb",
+                            },
+                        ]}
+                        showHeader={false}
+                        showLegend={false}
+                        height={208}
+                        xTickInterval={chartPeriod === "monthly" ? 4 : "preserveStartEnd"}
+                    />
                 </div>
             </div>
 

@@ -46,7 +46,7 @@ const navSections = [
     },
     {
         title: "Intelligence",
-        roles: ["super-admin", "campaign-manager", "research", "comms"],
+        roles: ["super-admin", "campaign-manager", "research", "comms", "finance"],
         items: [
             { label: "Social Listening", icon: Radio, href: "/social" },
             { label: "War Room", icon: Shield, href: "/war-room" },
@@ -68,6 +68,7 @@ const navSections = [
         items: [
             { label: "Users & Roles", icon: Users, href: "/users" },
             { label: "Admin Overview", icon: LayoutDashboard, href: "/admin/overview" },
+            { label: "Admin AI Assistant", icon: Bot, href: "/admin/assistant" },
             { label: "Audit Trail", icon: ListChecks, href: "/admin/audit-trail" },
             { label: "Settings", icon: Settings, href: "/settings" },
         ],

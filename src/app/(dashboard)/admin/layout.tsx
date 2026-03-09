@@ -3,6 +3,7 @@ import { ReactNode } from "react";
 
 const adminNav = [
     { label: "Org CRM Overview", href: "/admin/overview" },
+    { label: "AI Assistant", href: "/admin/assistant" },
     { label: "Users & Roles", href: "/admin/users" },
     { label: "Audit Trail", href: "/admin/audit-trail" },
     { label: "System & Logs", href: "/admin/system" },
