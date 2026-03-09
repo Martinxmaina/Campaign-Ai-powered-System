@@ -5,7 +5,7 @@ export interface TeamKpi {
     positive?: boolean;
 }
 
-export interface ExecutiveBarChartProps<TData extends Record<string, unknown>> {
+export interface ExecutiveBarChartProps<TData extends object> {
     title: string;
     subtitle?: string;
     data: TData[];
@@ -16,13 +16,13 @@ export interface ExecutiveBarChartProps<TData extends Record<string, unknown>> {
     horizontal?: boolean;
 }
 
-export interface ExecutiveLineChartSeries<TData extends Record<string, unknown>> {
+export interface ExecutiveLineChartSeries<TData extends object> {
     dataKey: keyof TData;
     label?: string;
     color?: string;
 }
 
-export interface ExecutiveLineChartProps<TData extends Record<string, unknown>> {
+export interface ExecutiveLineChartProps<TData extends object> {
     title: string;
     subtitle?: string;
     data: TData[];

@@ -12,7 +12,7 @@ import {
 } from "recharts";
 import type { ExecutiveBarChartProps } from "./types";
 
-export default function ExecutiveBarChart<TData extends Record<string, unknown>>(
+export default function ExecutiveBarChart<TData extends object>(
     props: ExecutiveBarChartProps<TData>,
 ) {
     const {
@@ -69,7 +69,7 @@ export default function ExecutiveBarChart<TData extends Record<string, unknown>>
                         )}
                         <Tooltip
                             cursor={{ fill: "rgba(148, 163, 184, 0.12)" }}
-                            formatter={(value: unknown) => [
+                            formatter={(value: any) => [
                                 value,
                                 valueLabel || (yKey as string),
                             ]}

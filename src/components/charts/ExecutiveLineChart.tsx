@@ -12,7 +12,7 @@ import {
 } from "recharts";
 import type { ExecutiveLineChartProps } from "./types";
 
-export default function ExecutiveLineChart<TData extends Record<string, unknown>>(
+export default function ExecutiveLineChart<TData extends object>(
     props: ExecutiveLineChartProps<TData>,
 ) {
     const {
