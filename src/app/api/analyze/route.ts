@@ -8,6 +8,7 @@ export async function POST(req: NextRequest) {
   if (!auth) return response;
 
   try {
+    const supabase = createAdminClient();
     const { posts } = await req.json() as {
       posts: { id: string; platform: string; content: string; author?: string }[]
     };
@@ -22,7 +23,6 @@ export async function POST(req: NextRequest) {
       .order("win_prob", { ascending: false });
 
     const results = await analyzePosts(posts, candidates ?? []);
-    const supabase = createAdminClient();
     let processed = 0, errors = 0;
 
     for (let i = 0; i < results.length; i++) {
