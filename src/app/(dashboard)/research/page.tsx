@@ -86,7 +86,7 @@ export default function ResearchPage() {
     const maxWardCount = wardCoverage.length > 0 ? Math.max(...wardCoverage.map(w => w.count)) : 1;
 
     return (
-        <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+        <div className="mx-auto max-w-7xl space-y-4 p-4 md:space-y-6 md:p-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h1 className="text-lg md:text-xl font-bold text-slate-900">Research Team Dashboard</h1>
@@ -94,54 +94,54 @@ export default function ResearchPage() {
                         AI-analyzed insights, field report coverage, and research deliverables.
                     </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                     {loading && <RefreshCw className="h-4 w-4 text-slate-400 animate-spin" />}
-                    <button className="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors shadow-sm text-slate-700">
+                    <button className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50 sm:w-auto">
                         <Download className="h-4 w-4" /> Export research pack
                     </button>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 md:gap-4">
+                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
                     <p className="text-xs uppercase tracking-wide text-slate-500 font-medium">Posts analyzed</p>
-                    <p className="text-3xl font-bold text-slate-900 mt-1">{totalPosts.toLocaleString()}</p>
+                    <p className="mt-1 text-2xl font-bold text-slate-900 md:text-3xl">{totalPosts.toLocaleString()}</p>
                     <p className="text-xs text-slate-400 mt-0.5">From all monitored platforms</p>
                 </div>
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
                     <p className="text-xs uppercase tracking-wide text-slate-500 font-medium">Field reports</p>
-                    <p className="text-3xl font-bold text-slate-900 mt-1">{totalFieldReports.toLocaleString()}</p>
+                    <p className="mt-1 text-2xl font-bold text-slate-900 md:text-3xl">{totalFieldReports.toLocaleString()}</p>
                     <p className="text-xs text-slate-400 mt-0.5">Submitted by field agents</p>
                 </div>
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-5 sm:col-span-2 lg:col-span-1">
                     <p className="text-xs uppercase tracking-wide text-slate-500 font-medium">Unique topics</p>
-                    <p className="text-3xl font-bold text-slate-900 mt-1">{uniqueTopics}</p>
+                    <p className="mt-1 text-2xl font-bold text-slate-900 md:text-3xl">{uniqueTopics}</p>
                     <p className="text-xs text-slate-400 mt-0.5">Distinct themes identified by AI</p>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 md:gap-6">
                 {/* Polling trend placeholder */}
                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm lg:col-span-2">
-                    <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                    <div className="flex items-center justify-between border-b border-slate-100 px-4 py-4 md:px-6">
                         <div>
                             <h3 className="text-sm font-semibold text-slate-900">Headline polling trend</h3>
                             <p className="text-xs text-slate-500 mt-0.5">Vote intent (%, Nyandarua) – last 8 waves.</p>
                         </div>
                         <LineChart className="h-4 w-4 text-slate-400" />
                     </div>
-                    <div className="p-6 flex items-center justify-center text-xs text-slate-400 min-h-30">
+                    <div className="flex min-h-28 items-center justify-center p-4 text-center text-xs text-slate-400 md:p-6">
                         Polling chart — connect a polling data source to populate.
                     </div>
                 </div>
 
                 {/* Ward coverage */}
                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-                    <div className="px-6 py-4 border-b border-slate-100">
+                    <div className="border-b border-slate-100 px-4 py-4 md:px-6">
                         <h3 className="text-sm font-semibold text-slate-900">Field coverage by ward</h3>
                         <p className="text-xs text-slate-500 mt-0.5">Reports submitted per ward</p>
                     </div>
-                    <div className="p-6 space-y-3">
+                    <div className="space-y-3 p-4 md:p-6">
                         {loading ? (
                             <div className="flex justify-center"><RefreshCw className="h-4 w-4 text-slate-300 animate-spin" /></div>
                         ) : wardCoverage.length === 0 ? (
@@ -165,7 +165,7 @@ export default function ResearchPage() {
 
             {/* AI-generated insights */}
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-                <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <div className="flex items-center justify-between border-b border-slate-100 px-4 py-4 md:px-6">
                     <div>
                         <h3 className="text-sm font-semibold text-slate-900">AI-generated insights</h3>
                         <p className="text-xs text-slate-500 mt-0.5">Key findings from the latest analyzed social posts.</p>
@@ -179,7 +179,35 @@ export default function ResearchPage() {
                         No insights yet. Run the AI analysis pipeline to populate analyzed_posts.
                     </div>
                 ) : (
-                    <div className="overflow-x-auto">
+                    <>
+                        <div className="divide-y divide-slate-50 md:hidden">
+                            {insights.map((row) => (
+                                <div key={row.id} className="space-y-2 px-4 py-4">
+                                    <div>
+                                        <p className="text-sm font-medium text-slate-900">{row.title}</p>
+                                        <p className="text-[10px] text-slate-400">{row.id}</p>
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+                                        <span>{row.type || "—"}</span>
+                                        <span>{row.ward || "—"}</span>
+                                        <span>{timeAgo(row.analyzedAt)}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between gap-3">
+                                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                                            row.sentiment === "positive" ? "bg-emerald-50 text-emerald-700" :
+                                            row.sentiment === "negative" ? "bg-red-50 text-red-600" :
+                                            "bg-slate-100 text-slate-600"
+                                        }`}>{row.sentiment ?? "neutral"}</span>
+                                        <button className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50">
+                                            <FileText className="h-3.5 w-3.5" />
+                                            View
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="hidden overflow-x-auto md:block">
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="border-b border-slate-100 text-left text-slate-500">
@@ -218,7 +246,8 @@ export default function ResearchPage() {
                                 ))}
                             </tbody>
                         </table>
-                    </div>
+                        </div>
+                    </>
                 )}
             </div>
         </div>

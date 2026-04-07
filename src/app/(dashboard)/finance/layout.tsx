@@ -10,20 +10,20 @@ const navItems = [
 
 export default function FinanceLayout({ children }: { children: ReactNode }) {
     return (
-        <div className="p-6 space-y-4">
-            <div className="flex items-center justify-between">
+        <div className="mx-auto max-w-7xl space-y-4 p-4 md:space-y-6 md:p-6">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <div>
-                    <h1 className="text-xl font-bold text-slate-900">Finance workspace</h1>
-                    <p className="text-sm text-slate-500 mt-0.5">
+                    <h1 className="text-lg font-bold text-slate-900 md:text-xl">Finance workspace</h1>
+                    <p className="mt-0.5 text-xs text-slate-500 md:text-sm">
                         Budget, spend, and financial reporting for the campaign.
                     </p>
                 </div>
-                <nav className="flex gap-2 text-xs">
+                <nav className="flex flex-wrap gap-2 text-xs">
                     {navItems.map((item) => (
                         <Link
                             key={item.href}
                             href={item.href}
-                            className="px-3 py-1.5 rounded-full border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 font-medium"
+                            className="inline-flex min-h-9 items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-700 hover:bg-slate-50"
                         >
                             {item.label}
                         </Link>
@@ -34,4 +34,3 @@ export default function FinanceLayout({ children }: { children: ReactNode }) {
         </div>
     );
 }
-

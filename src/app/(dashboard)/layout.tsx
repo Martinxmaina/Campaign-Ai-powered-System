@@ -18,8 +18,8 @@ function AccessGate({ children }: { children: React.ReactNode }) {
     }
 
     return (
-        <main className="flex-1 overflow-y-auto custom-scrollbar bg-[#f8f9fb] p-6">
-            <div className="max-w-2xl bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+        <main className="flex-1 overflow-y-auto custom-scrollbar bg-[#f8f9fb] p-4 md:p-6">
+            <div className="max-w-2xl rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-6">
                 <h2 className="text-lg font-semibold text-slate-900">
                     Access restricted
                 </h2>

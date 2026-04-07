@@ -99,17 +99,19 @@ export default function Home() {
               <a href="#security">Security</a>
               <Link
                 href="/login"
-                className="rounded-full border border-slate-300 bg-white/80 px-4 py-2 font-medium text-slate-900 backdrop-blur-sm transition hover:border-slate-400 hover:bg-white"
+                className="inline-flex items-center gap-2 rounded-full border border-slate-950/10 bg-slate-950 px-4 py-2 text-sm font-medium text-white shadow-[0_18px_45px_rgba(15,23,42,0.18)] transition hover:-translate-y-0.5 hover:bg-slate-800"
               >
                 Sign in
+                <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </nav>
 
             <Link
               href="/login"
-              className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white/85 px-4 py-2 text-sm font-medium text-slate-900 backdrop-blur-sm transition hover:border-slate-400 hover:bg-white lg:hidden"
+              className="inline-flex items-center justify-center gap-1.5 rounded-full border border-slate-950/10 bg-slate-950 px-3.5 py-2 text-xs font-medium text-white shadow-[0_16px_40px_rgba(15,23,42,0.16)] transition hover:bg-slate-800 lg:hidden"
             >
               Sign in
+              <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </header>
 

@@ -73,24 +73,24 @@ export default function ElectionCountdown({ mode }: Props) {
 
     // full mode
     return (
-        <div className="bg-linear-to-r from-blue-600 to-blue-700 rounded-xl p-5 text-white shadow-sm">
+        <div className="rounded-xl bg-linear-to-r from-blue-600 to-blue-700 p-4 text-white shadow-sm md:p-5">
             <div className="flex items-center gap-2 mb-3">
                 <Clock className="h-4 w-4 opacity-75" />
                 <p className="text-xs font-semibold uppercase tracking-wide opacity-75">Election Countdown</p>
             </div>
             <p className="text-sm font-bold mb-3">{eventName}</p>
             {timeLeft.past ? (
-                <p className="text-2xl font-black">Election Day has passed</p>
+                <p className="text-xl font-black md:text-2xl">Election Day has passed</p>
             ) : (
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                     {[
                         { value: timeLeft.days, label: "Days" },
                         { value: timeLeft.hours, label: "Hours" },
                         { value: timeLeft.mins, label: "Mins" },
                         { value: timeLeft.secs, label: "Secs" },
                     ].map(({ value, label }) => (
-                        <div key={label} className="bg-white/20 rounded-xl p-3 text-center">
-                            <p className="text-3xl font-black tabular-nums">{String(value).padStart(2, "0")}</p>
+                        <div key={label} className="rounded-xl bg-white/20 p-3 text-center">
+                            <p className="text-2xl font-black tabular-nums sm:text-3xl">{String(value).padStart(2, "0")}</p>
                             <p className="text-[10px] font-semibold opacity-75 mt-0.5 uppercase tracking-wide">{label}</p>
                         </div>
                     ))}
