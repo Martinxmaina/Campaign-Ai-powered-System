@@ -10,19 +10,19 @@ interface ExecutiveKpiCardProps extends TeamKpi {
 
 export default function ExecutiveKpiCard({ label, value, change, positive, icon }: ExecutiveKpiCardProps) {
     return (
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-            <div className="flex items-center justify-between mb-3">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+            <div className="mb-3 flex items-center justify-between">
                 <span className="text-slate-500 text-xs font-medium uppercase tracking-wide">
                     {label}
                 </span>
                 {icon && (
-                    <div className="p-2 bg-slate-50 rounded-lg text-slate-500">
+                    <div className="rounded-lg bg-slate-50 p-1.5 text-slate-500 md:p-2">
                         {icon}
                     </div>
                 )}
             </div>
             <div className="flex items-baseline gap-2">
-                <h3 className="text-2xl font-bold text-slate-900">
+                <h3 className="text-xl font-bold text-slate-900 md:text-2xl">
                     {value}
                 </h3>
                 {change && (
@@ -47,4 +47,3 @@ export default function ExecutiveKpiCard({ label, value, change, positive, icon 
         </div>
     );
 }
-

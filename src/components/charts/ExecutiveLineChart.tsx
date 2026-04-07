@@ -38,7 +38,7 @@ export default function ExecutiveLineChart<TData extends object>(
             }
         >
             {showHeader && (
-                <div className="px-6 py-4 border-b border-slate-100">
+                <div className="border-b border-slate-100 px-4 py-3 md:px-6 md:py-4">
                     <h3 className="text-sm font-semibold text-slate-900">
                         {title}
                     </h3>
@@ -49,7 +49,7 @@ export default function ExecutiveLineChart<TData extends object>(
                     )}
                 </div>
             )}
-            <div className={showHeader ? "p-4" : ""} style={{ height }}>
+            <div className={showHeader ? "p-3 md:p-4" : ""} style={{ height }}>
                 <ResponsiveContainer width="100%" height="100%">
                     <LineChart
                         data={data}
@@ -90,4 +90,3 @@ export default function ExecutiveLineChart<TData extends object>(
         </div>
     );
 }
-

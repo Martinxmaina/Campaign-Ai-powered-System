@@ -4,8 +4,9 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import {
     Bot, Send, Sparkles, User, ChevronDown, ChevronRight,
     Loader2, AlertCircle, Plus, MessageSquare, Trash2,
-    BookOpen, Clock, Hash,
+    BookOpen, Clock, Database, Menu, X,
 } from "lucide-react";
+import { authFetch } from "@/utils/supabase/auth-fetch";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface ReasoningDetail {
@@ -30,22 +31,13 @@ interface Conversation {
     updatedAt: number;
 }
 
-// ─── Constants ───────────────────────────────────────────────────────────────
-const SUGGESTED = [
-    "What's the top voter concern in Kisumu right now?",
-    "Draft counter-messaging to the Nakuru disinformation campaign.",
-    "How should we frame cost of living in Nairobi for youth voters?",
-    "Which issues should we prioritize for Mombasa rally talking points?",
-    "Recommend a response strategy to the opposition ad surge.",
-];
+// ─── Types ────────────────────────────────────────────────────────────────────
+interface LiveContext {
+    suggestions: string[];
+    sources: { label: string; desc: string; tag: string }[];
+}
 
-const DATA_SOURCES = [
-    { label: "VoterCore Analytics", desc: "Sentiment, engagement, donor stats", tag: "Live" },
-    { label: "Social Listening", desc: "45K+ mentions tracked across platforms", tag: "Live" },
-    { label: "War Room Intelligence", desc: "Threat monitoring and counter-narratives", tag: "Live" },
-    { label: "Internal Research Briefing", desc: "2027 Cost of Living County Analysis", tag: "Mar 2027" },
-    { label: "County Polling Data", desc: "6 priority counties tracked", tag: "Mar 2027" },
-];
+const EMPTY_MESSAGES: Message[] = [];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function generateId() {
@@ -129,14 +121,14 @@ function ReasoningBlock({ text }: { text: string }) {
 function AssistantMessage({ msg }: { msg: Message }) {
     return (
         <div className="flex gap-3 group">
-            <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center mt-0.5">
+            <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-50 md:h-8 md:w-8">
                 {msg.isStreaming
-                    ? <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
-                    : <Bot className="h-4 w-4 text-blue-600" />}
+                    ? <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600 md:h-4 md:w-4" />
+                    : <Bot className="h-3.5 w-3.5 text-blue-600 md:h-4 md:w-4" />}
             </div>
             <div className="flex-1 min-w-0">
                 {msg.reasoningText && <ReasoningBlock text={msg.reasoningText} />}
-                <div className="px-4 py-3.5 bg-white border border-slate-200 rounded-2xl rounded-tl-md shadow-sm">
+                <div className="rounded-2xl rounded-tl-md border border-slate-200 bg-white px-3.5 py-3 text-sm shadow-sm md:px-4 md:py-3.5">
                     {msg.isStreaming && !msg.content ? (
                         <span className="flex items-center gap-1 text-slate-400 text-sm">
                             <span className="animate-pulse">●</span>
@@ -161,21 +153,28 @@ function AssistantMessage({ msg }: { msg: Message }) {
 export default function AssistantPage() {
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [activeId, setActiveId] = useState<string | null>(null);
+    const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showSources, setShowSources] = useState(false);
+    const [liveCtx, setLiveCtx] = useState<LiveContext>({ suggestions: [], sources: [] });
 
     const bottomRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     const activeConv = conversations.find((c) => c.id === activeId) ?? null;
-    const messages = activeConv?.messages ?? [];
+    const messages = activeConv?.messages ?? EMPTY_MESSAGES;
 
     // Scroll to bottom on new messages
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
+
+    useEffect(() => {
+        if (!activeId) return;
+        setMobileSidebarOpen(false);
+    }, [activeId]);
 
     // Auto-resize textarea
     useEffect(() => {
@@ -196,7 +195,53 @@ export default function AssistantPage() {
         };
         setConversations((prev) => [conv, ...prev]);
         setActiveId(id);
+        setMobileSidebarOpen(false);
         setError(null);
+    }, []);
+
+    // Fetch live context for suggestions and data sources
+    useEffect(() => {
+        async function loadContext() {
+            try {
+                const [candidatesRes, alertsRes] = await Promise.all([
+                    authFetch("/api/candidates").then((r) => r.json()).catch(() => ({ candidates: [] })),
+                    authFetch("/api/war-room/analysis").then((r) => r.json()).catch(() => ({})),
+                ]);
+                const candidates: { name: string; party?: string; win_prob?: number; is_our_candidate?: boolean }[] =
+                    candidatesRes.candidates ?? candidatesRes ?? [];
+                const ours = candidates.find((c) => c.is_our_candidate);
+                const threats = candidates.filter((c) => !c.is_our_candidate).slice(0, 2);
+                const alertCount: number = alertsRes.active_alerts ?? 0;
+
+                const suggestions: string[] = [];
+                if (ours) {
+                    suggestions.push(`What is ${ours.name}'s current win probability and momentum?`);
+                    suggestions.push(`What are the top voter issues in Ol Kalou and how should ${ours.name} address them?`);
+                }
+                if (threats.length > 0) {
+                    suggestions.push(`How do we counter ${threats.map((t) => t.name).join(" and ")} in the next 7 days?`);
+                }
+                if (alertCount > 0) {
+                    suggestions.push(`Summarise the ${alertCount} active war room alert${alertCount > 1 ? "s" : ""} and recommend actions.`);
+                } else {
+                    suggestions.push("What ward-level ground strategy should we prioritise this week?");
+                }
+                suggestions.push("Draft UDA talking points on cost of living for youth voters in Ol Kalou.");
+
+                const sources = [
+                    { label: "Candidates", desc: `${candidates.length} candidates tracked`, tag: "Live" },
+                    { label: "War Room", desc: `${alertCount} active alert${alertCount !== 1 ? "s" : ""}`, tag: "Live" },
+                    { label: "Social Intelligence", desc: "Analyzed posts & sentiment", tag: "Live" },
+                    { label: "Field Reports", desc: "Ground intelligence by ward", tag: "Live" },
+                    { label: "Voter Contacts", desc: "Contact database by ward", tag: "Live" },
+                ];
+
+                setLiveCtx({ suggestions, sources });
+            } catch {
+                // Fallback — leave empty
+            }
+        }
+        loadContext();
     }, []);
 
     // Start with one conversation
@@ -262,7 +307,7 @@ export default function AssistantPage() {
                 userMsg,
             ];
 
-            const res = await fetch("/api/chat", {
+            const res = await authFetch("/api/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ messages: buildApiMessages(currentMessages) }),
@@ -344,23 +389,45 @@ export default function AssistantPage() {
     };
 
     return (
-        <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden">
+        <div className="relative flex h-[calc(100dvh-3.5rem)] min-h-0 overflow-hidden bg-white">
+            {mobileSidebarOpen && (
+                <button
+                    type="button"
+                    aria-label="Close conversations"
+                    onClick={() => setMobileSidebarOpen(false)}
+                    className="absolute inset-0 z-20 bg-slate-950/30 md:hidden"
+                />
+            )}
 
             {/* ── Conversation History Sidebar ─────────────────────────────── */}
-            <div className="w-64 flex-shrink-0 border-r border-slate-200 bg-slate-50 flex flex-col">
+            <div
+                className={`absolute inset-y-0 left-0 z-30 flex w-[min(18rem,calc(100vw-2rem))] max-w-xs flex-col border-r border-slate-200 bg-slate-50 transition-transform duration-200 md:static md:z-auto md:w-64 md:max-w-none ${
+                    mobileSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+                }`}
+            >
                 {/* Header */}
-                <div className="px-4 py-3.5 border-b border-slate-200 flex items-center justify-between">
+                <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
                     <div className="flex items-center gap-2">
                         <MessageSquare className="h-4 w-4 text-slate-500" />
                         <span className="text-sm font-semibold text-slate-700">Conversations</span>
                     </div>
-                    <button
-                        onClick={newConversation}
-                        className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-500 hover:text-slate-700 transition-colors"
-                        title="New conversation"
-                    >
-                        <Plus className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={newConversation}
+                            className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700"
+                            title="New conversation"
+                        >
+                            <Plus className="h-4 w-4" />
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setMobileSidebarOpen(false)}
+                            className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700 md:hidden"
+                            title="Close conversations"
+                        >
+                            <X className="h-4 w-4" />
+                        </button>
+                    </div>
                 </div>
 
                 {/* List */}
@@ -372,14 +439,14 @@ export default function AssistantPage() {
                             <div
                                 key={conv.id}
                                 onClick={() => setActiveId(conv.id)}
-                                className={`group mx-2 mb-0.5 px-3 py-2.5 rounded-lg cursor-pointer flex items-start gap-2 transition-colors ${conv.id === activeId
+                                className={`group mx-2 mb-1 flex cursor-pointer items-start gap-2 rounded-lg px-3 py-2.5 transition-colors ${conv.id === activeId
                                         ? "bg-blue-600 text-white"
                                         : "hover:bg-white text-slate-600"
                                     }`}
                             >
-                                <MessageSquare className={`h-3.5 w-3.5 flex-shrink-0 mt-0.5 ${conv.id === activeId ? "text-blue-200" : "text-slate-400"}`} />
+                                <MessageSquare className={`h-3.5 w-3.5 shrink-0 mt-0.5 ${conv.id === activeId ? "text-blue-200" : "text-slate-400"}`} />
                                 <div className="flex-1 min-w-0">
-                                    <p className={`text-[12px] font-medium truncate ${conv.id === activeId ? "text-white" : "text-slate-700"}`}>
+                                    <p className={`truncate text-sm font-medium ${conv.id === activeId ? "text-white" : "text-slate-700"}`}>
                                         {conv.title}
                                     </p>
                                     <p className={`text-[10px] mt-0.5 ${conv.id === activeId ? "text-blue-200" : "text-slate-400"}`}>
@@ -388,7 +455,7 @@ export default function AssistantPage() {
                                 </div>
                                 <button
                                     onClick={(e) => { e.stopPropagation(); deleteConversation(conv.id); }}
-                                    className={`flex-shrink-0 opacity-0 group-hover:opacity-100 p-0.5 rounded transition-opacity ${conv.id === activeId ? "hover:bg-blue-500 text-blue-200" : "hover:bg-slate-200 text-slate-400"}`}
+                                    className={`shrink-0 opacity-0 group-hover:opacity-100 p-0.5 rounded transition-opacity ${conv.id === activeId ? "hover:bg-blue-500 text-blue-200" : "hover:bg-slate-200 text-slate-400"}`}
                                 >
                                     <Trash2 className="h-3 w-3" />
                                 </button>
@@ -401,7 +468,7 @@ export default function AssistantPage() {
                 <div className="border-t border-slate-200 px-4 py-3">
                     <button
                         onClick={() => setShowSources((v) => !v)}
-                        className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 hover:text-slate-700 transition-colors w-full"
+                        className="flex w-full items-center gap-1.5 text-xs font-semibold text-slate-500 transition-colors hover:text-slate-700"
                     >
                         <BookOpen className="h-3.5 w-3.5" />
                         Data Sources
@@ -409,15 +476,17 @@ export default function AssistantPage() {
                     </button>
                     {showSources && (
                         <div className="mt-2 space-y-2">
-                            {DATA_SOURCES.map((src) => (
+                            {liveCtx.sources.length === 0 ? (
+                                <p className="text-[10px] text-slate-400 italic">Loading…</p>
+                            ) : liveCtx.sources.map((src) => (
                                 <div key={src.label} className="flex items-start gap-2">
-                                    <Hash className="h-3 w-3 text-blue-500 flex-shrink-0 mt-0.5" />
+                                    <Database className="h-3 w-3 text-blue-500 shrink-0 mt-0.5" />
                                     <div className="min-w-0">
                                         <div className="flex items-center gap-1.5">
-                                            <p className="text-[11px] font-semibold text-slate-700 truncate">{src.label}</p>
-                                            <span className="text-[9px] px-1 py-0.5 bg-blue-50 text-blue-600 rounded font-medium flex-shrink-0">{src.tag}</span>
+                                            <p className="truncate text-xs font-semibold text-slate-700">{src.label}</p>
+                                            <span className="text-[9px] px-1 py-0.5 bg-emerald-50 text-emerald-600 rounded font-medium shrink-0">{src.tag}</span>
                                         </div>
-                                        <p className="text-[10px] text-slate-400">{src.desc}</p>
+                                        <p className="text-[10px] text-slate-400 leading-relaxed">{src.desc}</p>
                                     </div>
                                 </div>
                             ))}
@@ -429,19 +498,27 @@ export default function AssistantPage() {
             {/* ── Main Chat Area ────────────────────────────────────────────── */}
             <div className="flex-1 flex flex-col min-w-0">
                 {/* Chat header */}
-                <div className="px-6 py-3.5 border-b border-slate-100 flex items-center gap-3 bg-white flex-shrink-0">
-                    <div className="p-1.5 bg-blue-50 rounded-lg"><Bot className="h-4 w-4 text-blue-600" /></div>
-                    <div>
-                        <h2 className="text-sm font-bold text-slate-900">
+                <div className="flex shrink-0 items-center gap-3 border-b border-slate-100 bg-white px-4 py-3 md:px-6 md:py-3.5">
+                    <button
+                        type="button"
+                        onClick={() => setMobileSidebarOpen(true)}
+                        className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-700 md:hidden"
+                        aria-label="Open conversations"
+                    >
+                        <Menu className="h-4 w-4" />
+                    </button>
+                    <div className="rounded-lg bg-blue-50 p-1.5"><Bot className="h-4 w-4 text-blue-600" /></div>
+                    <div className="min-w-0">
+                        <h2 className="truncate text-sm font-semibold text-slate-900">
                             {activeConv?.title ?? "AI Strategy Assistant"}
                         </h2>
-                        <p className="text-[11px] text-slate-400 flex items-center gap-1.5">
+                        <p className="flex flex-wrap items-center gap-1.5 text-[11px] leading-relaxed text-slate-400">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse" />
-                            Qwen3 · OpenRouter · Reasoning enabled · Campaign context loaded
+                            Claude Sonnet · Live RAG · pgvector search · Campaign context loaded
                         </p>
                     </div>
                     {messages.length > 0 && (
-                        <div className="ml-auto flex items-center gap-1.5 text-[11px] text-slate-400">
+                        <div className="ml-auto hidden items-center gap-1.5 text-[11px] text-slate-400 sm:flex">
                             <Clock className="h-3 w-3" />
                             {messages.length} messages
                         </div>
@@ -449,56 +526,60 @@ export default function AssistantPage() {
                 </div>
 
                 {/* Messages */}
-                <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-5 space-y-5">
+                <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 custom-scrollbar md:space-y-5 md:px-6 md:py-5">
                     {/* Empty state */}
                     {messages.length === 0 && (
-                        <div className="h-full flex flex-col items-center justify-center text-center py-12">
-                            <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center mb-4">
-                                <Bot className="h-7 w-7 text-blue-600" />
+                        <div className="flex h-full flex-col items-center justify-center py-10 text-center">
+                            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 md:h-14 md:w-14">
+                                <Bot className="h-6 w-6 text-blue-600 md:h-7 md:w-7" />
                             </div>
-                            <h3 className="text-base font-bold text-slate-900 mb-1">Campaign Strategy Assistant</h3>
-                            <p className="text-sm text-slate-500 max-w-xs mb-6">
-                                Ask me anything about voter data, messaging, county strategy, or War Room threats. I'm grounded in your live campaign intelligence.
+                            <h3 className="mb-1 text-sm font-semibold text-slate-900 md:text-base">Campaign Strategy Assistant</h3>
+                            <p className="mb-6 max-w-xs text-sm leading-relaxed text-slate-500">
+                                Ask me anything about voter data, messaging, county strategy, or War Room threats. I&apos;m grounded in your live campaign intelligence.
                             </p>
-                            <div className="grid grid-cols-1 gap-2 w-full max-w-sm">
-                                {SUGGESTED.map((q) => (
-                                    <button
-                                        key={q}
-                                        onClick={() => sendMessage(q)}
-                                        className="px-4 py-2.5 text-xs bg-white border border-slate-200 rounded-xl hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition-all text-slate-600 font-medium shadow-sm text-left"
-                                    >
-                                        {q}
-                                    </button>
-                                ))}
-                            </div>
+                            {liveCtx.suggestions.length > 0 ? (
+                                <div className="grid w-full max-w-sm grid-cols-1 gap-2">
+                                    {liveCtx.suggestions.map((q) => (
+                                        <button
+                                            key={q}
+                                            onClick={() => sendMessage(q)}
+                                            className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-left text-sm font-medium text-slate-600 shadow-sm transition-all hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700"
+                                        >
+                                            {q}
+                                        </button>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-xs text-slate-400 italic">Loading suggestions from live data…</p>
+                            )}
                         </div>
                     )}
 
                     {/* Message list */}
                     {messages.map((msg, i) =>
                         msg.role === "user" ? (
-                            <div key={i} className="flex gap-3 justify-end">
-                                <div className="max-w-[75%]">
-                                    <div className="px-4 py-3 bg-blue-600 text-white rounded-2xl rounded-tr-md text-sm leading-relaxed">
+                            <div key={`${msg.timestamp ?? i}-${msg.role}`} className="flex justify-end gap-3">
+                                <div className="max-w-[88%] sm:max-w-[75%]">
+                                    <div className="rounded-2xl rounded-tr-md bg-blue-600 px-3.5 py-3 text-sm leading-relaxed text-white md:px-4">
                                         {msg.content}
                                     </div>
                                     {msg.timestamp && (
                                         <p className="text-[10px] text-slate-400 mt-1 text-right">{formatTime(msg.timestamp)}</p>
                                     )}
                                 </div>
-                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center mt-0.5">
-                                    <User className="h-4 w-4 text-slate-500" />
+                                <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-100 md:h-8 md:w-8">
+                                    <User className="h-3.5 w-3.5 text-slate-500 md:h-4 md:w-4" />
                                 </div>
                             </div>
                         ) : (
-                            <AssistantMessage key={i} msg={msg} />
+                            <AssistantMessage key={`${msg.timestamp ?? i}-${msg.role}`} msg={msg} />
                         )
                     )}
 
                     {/* Error */}
                     {error && (
                         <div className="flex gap-2 items-start px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
-                            <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                            <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
                             <div>
                                 <p className="font-semibold">Error</p>
                                 <p className="text-xs mt-0.5">{error}</p>
@@ -509,13 +590,13 @@ export default function AssistantPage() {
                 </div>
 
                 {/* Input area */}
-                <div className="px-6 pb-5 pt-3 border-t border-slate-100 bg-white flex-shrink-0">
+                <div className="shrink-0 border-t border-slate-100 bg-white px-4 pb-4 pt-3 md:px-6 md:pb-5">
                     {/* References note */}
-                    <div className="mb-2 flex items-center gap-1.5 text-[11px] text-slate-400">
+                    <div className="mb-2 flex items-center gap-1.5 text-[11px] leading-relaxed text-slate-400">
                         <BookOpen className="h-3 w-3" />
                         Responses cite: VoterCore Analytics · Social Listening · War Room · County Research · Polling Data
                     </div>
-                    <form onSubmit={handleSubmit} className="flex gap-3 items-end">
+                    <form onSubmit={handleSubmit} className="flex items-end gap-2.5 md:gap-3">
                         <div className="flex-1 relative">
                             <textarea
                                 ref={textareaRef}
@@ -524,13 +605,13 @@ export default function AssistantPage() {
                                 onKeyDown={handleKeyDown}
                                 placeholder="Ask about strategy, messaging, voter data, or threats… (Enter to send)"
                                 rows={1}
-                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none resize-none leading-relaxed custom-scrollbar"
+                                className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-sm leading-relaxed placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 custom-scrollbar md:px-4"
                             />
                         </div>
                         <button
                             type="submit"
                             disabled={isLoading || !input.trim()}
-                            className="flex-shrink-0 px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                         </button>

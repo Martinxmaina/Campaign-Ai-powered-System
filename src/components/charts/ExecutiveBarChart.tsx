@@ -28,7 +28,7 @@ export default function ExecutiveBarChart<TData extends object>(
 
     return (
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-            <div className="px-6 py-4 border-b border-slate-100">
+            <div className="border-b border-slate-100 px-4 py-3 md:px-6 md:py-4">
                 <h3 className="text-sm font-semibold text-slate-900">
                     {title}
                 </h3>
@@ -38,7 +38,7 @@ export default function ExecutiveBarChart<TData extends object>(
                     </p>
                 )}
             </div>
-            <div className="p-4 h-64">
+            <div className="h-60 p-3 md:h-64 md:p-4">
                 <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                         data={data}
@@ -63,12 +63,14 @@ export default function ExecutiveBarChart<TData extends object>(
                                     dataKey={xKey as string}
                                     tickLine={false}
                                     axisLine={false}
+                                    tick={{ fontSize: 11, fill: "#64748b" }}
                                 />
-                                <YAxis tickLine={false} axisLine={false} />
+                                <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 10, fill: "#64748b" }} />
                             </>
                         )}
                         <Tooltip
                             cursor={{ fill: "rgba(148, 163, 184, 0.12)" }}
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             formatter={(value: any) => [
                                 value,
                                 valueLabel || (yKey as string),
@@ -87,4 +89,3 @@ export default function ExecutiveBarChart<TData extends object>(
         </div>
     );
 }
-

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { RoleProvider, useRoleContext } from "@/components/auth/RoleContext";
+import { PartyProvider } from "@/lib/parties";
 import Sidebar from "@/components/layout/Sidebar";
 import Header from "@/components/layout/Header";
 import { canAccessPath, getHomeForRole } from "@/lib/roles";
@@ -42,20 +43,39 @@ export default function DashboardLayout({
     children: React.ReactNode;
 }) {
     const [collapsed, setCollapsed] = useState(false);
+    const [mobileOpen, setMobileOpen] = useState(false);
+    const closeMobileNav = useCallback(() => setMobileOpen(false), []);
+    const openMobileNav = useCallback(() => setMobileOpen(true), []);
+    const toggleSidebar = useCallback(() => setCollapsed((v) => !v), []);
 
     return (
         <RoleProvider>
-            <div className="flex h-screen overflow-hidden">
-                <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((v) => !v)} />
+          <PartyProvider>
+            <div className="flex h-screen overflow-hidden min-w-0">
+                {mobileOpen && (
+                    <button
+                        type="button"
+                        className="fixed inset-0 z-30 bg-slate-950/40 md:hidden"
+                        aria-label="Close navigation"
+                        onClick={closeMobileNav}
+                    />
+                )}
+                <Sidebar
+                    collapsed={collapsed}
+                    onToggle={toggleSidebar}
+                    mobileOpen={mobileOpen}
+                    onCloseMobile={closeMobileNav}
+                />
                 <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-                    <Header />
+                    <Header onOpenMobileNav={openMobileNav} />
                     <AccessGate>
-                        <main className="flex-1 overflow-y-auto custom-scrollbar bg-[#f8f9fb]">
+                        <main className="flex-1 min-w-0 overflow-y-auto custom-scrollbar bg-[#f8f9fb]">
                             {children}
                         </main>
                     </AccessGate>
                 </div>
             </div>
+          </PartyProvider>
         </RoleProvider>
     );
 }

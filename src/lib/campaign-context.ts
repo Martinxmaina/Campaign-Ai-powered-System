@@ -7,6 +7,15 @@ export function getFullCampaignContext(): string {
 	return `
 ## CAMPAIGN INTELLIGENCE BRIEFING (2027 Kenyan General Election)
 
+### PARTY & CAMPAIGN IDENTITY
+- **Party**: UDA (United Democratic Alliance) — Kenya Kwanza coalition
+- **Alignment**: Pro-President Ruto, bottom-up economy, hustler nation movement
+- **Constituency**: Ol Kalou parliamentary by-election, Nyandarua County
+- **Primary threat**: DCP (Rigathi Gachagua's party) — vote-splitting in the Mt. Kenya region after the Gachagua impeachment
+- **Strategic posture**: UDA is the ruling party. Our candidate carries the presidential endorsement narrative and Kenya Kwanza development agenda.
+- **Campaign motto**: Kenya Kwanza — Jobs, Affordable Living, Infrastructure for Ol Kalou
+- **Key message**: The bottom-up economic model is delivering for hustlers; DCP represents division and the old guard.
+
 ### COST OF LIVING CRISIS — TALKING POINTS
 Source: VoterCore Internal Research, March 2027
 
@@ -91,7 +100,7 @@ W1: 3,820 | W2: 4,100 | W3: 4,380 | W4: 4,620 | W5: 5,010 | W6: 5,420 | W7: 5,72
 **Outreach Reports**
 - OUT-019: Ward-level door-to-door coverage – Nairobi (Field, Feb 2026, Ground Game)
 - OUT-016: SMS mobilisation for voter registration (SMS, Jan–Feb 2026, Comms)
-- OUT-013: Re-engagement of lapsed volunteers (Email, Q4 2025, Organising)
+- OUT-013: Re-engagement of lapsed volunteers (Email, Q4 2026, Organising)
 
 ### CALL CENTER
 Source: Call Center Dashboard

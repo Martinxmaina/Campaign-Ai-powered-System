@@ -11,6 +11,7 @@ export const metadata: Metadata = {
   title: "VoterCore – Campaign Intelligence Platform",
   description:
     "Centralized campaign intelligence and operations platform for data-driven political campaigns.",
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({

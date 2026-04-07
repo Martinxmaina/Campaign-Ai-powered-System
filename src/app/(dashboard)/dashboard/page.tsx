@@ -1,96 +1,127 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
-    Smile, MousePointerClick, Newspaper, DollarSign,
-    Send, Heart, Mic, AlertTriangle, ArrowUpRight, RefreshCw,
+    Smile, MousePointerClick, Newspaper,
+    AlertTriangle, ArrowUpRight, RefreshCw, Loader2,
 } from "lucide-react";
-import KenyaHeatmap from "@/components/dashboard/KenyaHeatmap";
-import ExecutiveLineChart from "@/components/charts/ExecutiveLineChart";
-
-// ─── Data ────────────────────────────────────────────────────────────────────
-const stats = [
-    { label: "Voter Sentiment", value: "68%", change: "+5.2%", icon: Smile, iconBg: "bg-blue-50", iconColor: "text-blue-600" },
-    { label: "Message Engagement", value: "4.2%", change: "+0.8%", icon: MousePointerClick, iconBg: "bg-violet-50", iconColor: "text-violet-600" },
-    { label: "Media Hits", value: "124", change: "Target: 150", icon: Newspaper, iconBg: "bg-amber-50", iconColor: "text-amber-600", neutral: true },
-    { label: "Total Donors", value: "12,482", change: "+12%", icon: DollarSign, iconBg: "bg-emerald-50", iconColor: "text-emerald-600" },
-];
-
-const activityFeed = [
-    { title: "Email Blast Dispatched", description: '"Town Hall Invitation" sent to 120,000 voters across Nairobi County.', time: "2 hours ago", icon: Send, iconBg: "bg-blue-50", iconColor: "text-blue-600" },
-    { title: "New Fundraising Milestone", description: "Reached KSh 300M goal for the quarter. Major fundraiser held in Mombasa.", time: "5 hours ago", icon: Heart, iconBg: "bg-emerald-50", iconColor: "text-emerald-600" },
-    { title: "Media Mention Recorded", description: "Candidate interviewed on Citizen TV regarding Kisumu infrastructure projects.", time: "Yesterday", icon: Mic, iconBg: "bg-violet-50", iconColor: "text-violet-600" },
-    { title: "War Room Alert", description: "Disinformation campaign detected on social media targeting Nakuru voters.", time: "2 days ago", icon: AlertTriangle, iconBg: "bg-amber-50", iconColor: "text-amber-600" },
-];
-
-const emailPerformance = [
-    { label: "Donation Match Alert", rate: 91 },
-    { label: "Weekly Update #14", rate: 82 },
-    { label: "Endorsement Announcement", rate: 74 },
-    { label: "Policy Position Paper", rate: 65 },
-];
-
-const keyIssues = [
-    { label: "Unga Prices", size: "xl", color: "bg-blue-600 text-white" },
-    { label: "Healthcare", size: "lg", color: "bg-blue-100 text-blue-700" },
-    { label: "Job Creation", size: "md", color: "bg-blue-100 text-blue-700" },
-    { label: "Education (CBC)", size: "sm", color: "bg-slate-100 text-slate-600" },
-    { label: "Housing", size: "md", color: "bg-violet-100 text-violet-700" },
-    { label: "Infrastructure", size: "xs", color: "bg-slate-100 text-slate-600" },
-    { label: "Environment", size: "sm", color: "bg-emerald-100 text-emerald-700" },
-    { label: "Taxation", size: "xs", color: "bg-slate-100 text-slate-500" },
-];
-
-// Days 1–30 sentiment data (two series)
-const sentimentData = {
-    weekly: [52, 55, 54, 58, 60, 57, 62, 61, 63, 65, 64, 67, 68, 66, 68],
-    monthly: [48, 50, 51, 53, 52, 55, 56, 55, 58, 60, 59, 61, 63, 62, 64, 65, 63, 66, 67, 65, 67, 68, 67, 69, 68, 70, 68, 70, 71, 68],
-};
+import dynamic from "next/dynamic";
+import {
+    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
+} from "recharts";
+import ElectionCountdown from "@/components/layout/ElectionCountdown";
+const NyandaruaHeatmap = dynamic(() => import("@/components/dashboard/NyandaruaHeatmap"), { ssr: false });
+import type ExecutiveLineChartType from "@/components/charts/ExecutiveLineChart";
+const ExecutiveLineChart = dynamic(() => import("@/components/charts/ExecutiveLineChart"), { ssr: false }) as typeof ExecutiveLineChartType;
+import { getDashboardStats, getSentimentBreakdown, getCandidateHistory } from "@/lib/supabase/queries";
+import { useCandidateUpdates } from "@/lib/supabase/realtime";
+import type { DashboardStats } from "@/lib/supabase/queries";
+import type { Candidate, WarRoomAlert } from "@/lib/supabase/queries";
+import { createClient } from "@/utils/supabase/client";
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function DashboardPage() {
     const [chartPeriod, setChartPeriod] = useState<"weekly" | "monthly">("monthly");
-    const [lastRefreshed, setLastRefreshed] = useState("Just now");
+    const [loading, setLoading] = useState(true);
+    const [stats, setStats] = useState<DashboardStats | null>(null);
+    const [sentiment, setSentiment] = useState({ positive: 0, negative: 0, neutral: 0, total: 0 });
+    const [recentAlerts, setRecentAlerts] = useState<WarRoomAlert[]>([]);
+    const [historyData, setHistoryData] = useState<{ label: string; value: number }[]>([]);
     const [activeActivity, setActiveActivity] = useState<number | null>(null);
 
-    const sizeClasses: Record<string, string> = {
-        xl: "px-4 py-2.5 text-base font-bold",
-        lg: "px-4 py-2 text-sm font-bold",
-        md: "px-3 py-1.5 text-sm font-semibold",
-        sm: "px-2.5 py-1 text-xs font-medium",
-        xs: "px-2 py-1 text-[11px] font-medium",
+    const candidates = useCandidateUpdates(stats?.candidates ?? []);
+
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const [dashStats, sentimentData] = await Promise.all([
+                getDashboardStats(),
+                getSentimentBreakdown(24),
+            ]);
+            setStats(dashStats);
+            setSentiment(sentimentData);
+
+            // Fetch recent alerts for activity feed
+            const supabase = createClient();
+            const { data: alerts } = await supabase
+                .from("war_room_alerts")
+                .select("*")
+                .order("created_at", { ascending: false })
+                .limit(5);
+            setRecentAlerts(alerts ?? []);
+
+            // Fetch history for our candidate chart
+            if (dashStats.candidates.length > 0) {
+                const ourCandidate = dashStats.candidates.find((c) => c.is_our_candidate) ?? dashStats.candidates[0];
+                const history = await getCandidateHistory(ourCandidate.id, chartPeriod === "weekly" ? 105 : 30);
+                setHistoryData(
+                    history.map((h, i) => ({
+                        label: chartPeriod === "weekly" ? `W${i + 1}` : `D${i + 1}`,
+                        value: Number(h.sentiment_positive ?? 0),
+                    }))
+                );
+            }
+        } catch (err) {
+            console.error("Dashboard fetch error:", err);
+        }
+        setLoading(false);
+    };
+
+    useEffect(() => {
+        fetchData();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [chartPeriod]);
+
+    const positivePct = sentiment.total > 0 ? Math.round((sentiment.positive / sentiment.total) * 100) : 0;
+
+    const statCards = [
+        { label: "Voter Sentiment", value: `${positivePct}%`, change: `${sentiment.total} posts`, icon: Smile, iconBg: "bg-blue-50", iconColor: "text-blue-600" },
+        { label: "Active Alerts", value: String(stats?.activeAlerts ?? 0), change: "war room", icon: AlertTriangle, iconBg: "bg-amber-50", iconColor: "text-amber-600", neutral: true },
+        { label: "Posts Analyzed", value: String(stats?.totalPosts ?? 0), change: "all platforms", icon: Newspaper, iconBg: "bg-violet-50", iconColor: "text-violet-600", neutral: true },
+        { label: "Voter Contacts", value: String(stats?.totalVoterContacts ?? 0), change: `${stats?.totalFieldReports ?? 0} field reports`, icon: MousePointerClick, iconBg: "bg-emerald-50", iconColor: "text-emerald-600", neutral: true },
+    ];
+
+    const severityIcon: Record<string, { iconBg: string; iconColor: string }> = {
+        critical: { iconBg: "bg-red-50", iconColor: "text-red-600" },
+        high: { iconBg: "bg-amber-50", iconColor: "text-amber-600" },
+        medium: { iconBg: "bg-blue-50", iconColor: "text-blue-600" },
+        info: { iconBg: "bg-slate-50", iconColor: "text-slate-600" },
     };
 
     return (
-        <div className="p-6 space-y-6">
+        <div className="p-4 md:p-6 space-y-4 md:space-y-6">
             {/* Page Title */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h1 className="text-xl font-bold text-slate-900">Campaign Overview</h1>
-                    <p className="text-sm text-slate-500 mt-0.5">Real-time campaign performance and key metrics</p>
+                    <h1 className="text-lg md:text-xl font-bold text-slate-900">Campaign Overview</h1>
+                    <p className="text-sm text-slate-500 mt-0.5">Real-time campaign performance — Ol Kalou 2026</p>
                 </div>
                 <button
-                    onClick={() => setLastRefreshed("Just now")}
-                    className="flex items-center gap-2 bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors shadow-sm"
+                    onClick={fetchData}
+                    disabled={loading}
+                    className="flex items-center gap-2 bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors shadow-sm disabled:opacity-50"
                 >
-                    <RefreshCw className="h-3.5 w-3.5" />
-                    Refresh · {lastRefreshed}
+                    {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                    {loading ? "Loading..." : "Refresh"}
                 </button>
             </div>
 
+            {/* Election Countdown */}
+            <ElectionCountdown mode="full" />
+
             {/* Stat Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {stats.map((stat) => {
+                {statCards.map((stat) => {
                     const Icon = stat.icon;
                     return (
-                        <div key={stat.label} className="stat-card bg-white p-5 rounded-xl border border-slate-200 shadow-sm cursor-pointer">
+                        <div key={stat.label} className="stat-card bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
                             <div className="flex items-center justify-between mb-3">
                                 <span className="text-slate-500 text-xs font-medium uppercase tracking-wide">{stat.label}</span>
                                 <div className={`p-2 ${stat.iconBg} ${stat.iconColor} rounded-lg`}><Icon className="h-4 w-4" /></div>
                             </div>
                             <div className="flex items-baseline gap-2">
                                 <h3 className="text-2xl font-bold text-slate-900">{stat.value}</h3>
-                                <span className={`text-xs font-medium flex items-center gap-0.5 ${stat.neutral ? "text-slate-400" : "text-emerald-600"}`}>
+                                <span className={`text-xs font-medium ${stat.neutral ? "text-slate-400" : "text-emerald-600 flex items-center gap-0.5"}`}>
                                     {!stat.neutral && <ArrowUpRight className="h-3 w-3" />}
                                     {stat.change}
                                 </span>
@@ -100,27 +131,81 @@ export default function DashboardPage() {
                 })}
             </div>
 
+            {/* Candidate Standings */}
+            {candidates.length > 0 && (
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                    <h3 className="text-sm font-semibold text-slate-900 mb-4">Candidate Win Probability</h3>
+                    <div className="space-y-3">
+                        {candidates.map((c) => {
+                            const color = c.is_our_candidate ? "bg-blue-600" : c.threat_level === "high" ? "bg-red-500" : "bg-slate-400";
+                            return (
+                                <div key={c.id} className="group">
+                                    <div className="flex justify-between text-xs mb-1.5">
+                                        <span className="font-medium text-slate-700">
+                                            {c.name} {c.party && `(${c.party})`}
+                                            {c.is_our_candidate && <span className="ml-1 text-blue-600 font-semibold">★</span>}
+                                        </span>
+                                        <div className="flex items-center gap-2">
+                                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${c.momentum === "rising" ? "bg-emerald-50 text-emerald-600" : c.momentum === "declining" ? "bg-red-50 text-red-600" : "bg-slate-100 text-slate-500"}`}>
+                                                {c.momentum}
+                                            </span>
+                                            <span className={`font-bold px-1.5 py-0.5 rounded text-white text-[10px] ${color}`}>{c.win_prob}%</span>
+                                        </div>
+                                    </div>
+                                    <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                                        <div className={`${color} h-full rounded-full transition-all duration-500`} style={{ width: `${c.win_prob}%` }} />
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
+            {/* Candidate Performance Bar Chart */}
+            {candidates.length > 0 && (
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                    <h3 className="text-sm font-semibold text-slate-900 mb-1">Candidate Win Probability — All Candidates</h3>
+                    <p className="text-xs text-slate-400 mb-4">Blue = our candidate · Red = high threat · Gray = others</p>
+                    <div className="h-56">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart
+                                layout="vertical"
+                                data={[...candidates].sort((a, b) => (b.win_prob ?? 0) - (a.win_prob ?? 0)).map((c) => ({
+                                    name: c.name.split(" ").slice(-1)[0],
+                                    win_prob: c.win_prob ?? 0,
+                                    fill: c.is_our_candidate ? "#2563eb" : c.threat_level === "high" || c.threat_level === "critical" ? "#ef4444" : "#94a3b8",
+                                }))}
+                                margin={{ left: 8, right: 24, top: 0, bottom: 0 }}
+                            >
+                                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                                <XAxis type="number" domain={[0, 50]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 10 }} />
+                                <YAxis dataKey="name" type="category" tick={{ fontSize: 11 }} width={64} />
+                                <Tooltip formatter={(v) => [`${v}%`, "Win probability"]} contentStyle={{ fontSize: 12 }} />
+                                <Bar dataKey="win_prob" radius={[0, 3, 3, 0]}>
+                                    {[...candidates].sort((a, b) => (b.win_prob ?? 0) - (a.win_prob ?? 0)).map((c, i) => (
+                                        <Cell key={i} fill={c.is_our_candidate ? "#2563eb" : c.threat_level === "high" || c.threat_level === "critical" ? "#ef4444" : "#94a3b8"} />
+                                    ))}
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+            )}
+
             {/* Sentiment Chart */}
             <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                     <div>
-                        <h3 className="text-sm font-semibold text-slate-900">
-                            Voter Sentiment Trends
-                        </h3>
-                        <p className="text-xs text-slate-400 mt-0.5">
-                            Positive sentiment % over time
-                        </p>
+                        <h3 className="text-sm font-semibold text-slate-900">Voter Sentiment Trends</h3>
+                        <p className="text-xs text-slate-400 mt-0.5">Positive sentiment % over time</p>
                     </div>
                     <div className="flex gap-0.5 bg-slate-100 p-0.5 rounded-lg">
                         {(["weekly", "monthly"] as const).map((p) => (
                             <button
                                 key={p}
                                 onClick={() => setChartPeriod(p)}
-                                className={`px-3 py-1 text-[11px] font-medium rounded-md transition-all capitalize ${
-                                    chartPeriod === p
-                                        ? "bg-white text-slate-900 shadow-sm"
-                                        : "text-slate-500 hover:text-slate-700"
-                                }`}
+                                className={`px-3 py-1 text-[11px] font-medium rounded-md transition-all capitalize ${chartPeriod === p ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
                             >
                                 {p}
                             </button>
@@ -128,29 +213,23 @@ export default function DashboardPage() {
                     </div>
                 </div>
                 <div className="h-52 w-full">
-                    <ExecutiveLineChart
-                        title=""
-                        subtitle={chartPeriod === "weekly" ? "Last 15 weeks" : "Last 30 days"}
-                        data={sentimentData[chartPeriod].map((v, index) => ({
-                            label:
-                                chartPeriod === "weekly"
-                                    ? `W${index + 1}`
-                                    : `D${index + 1}`,
-                            value: v,
-                        }))}
-                        xKey="label"
-                        series={[
-                            {
-                                dataKey: "value",
-                                label: "Positive sentiment (%)",
-                                color: "#2563eb",
-                            },
-                        ]}
-                        showHeader={false}
-                        showLegend={false}
-                        height={208}
-                        xTickInterval={chartPeriod === "monthly" ? 4 : "preserveStartEnd"}
-                    />
+                    {historyData.length > 0 ? (
+                        <ExecutiveLineChart
+                            title=""
+                            subtitle={chartPeriod === "weekly" ? "Last 15 weeks" : "Last 30 days"}
+                            data={historyData}
+                            xKey="label"
+                            series={[{ dataKey: "value", label: "Positive sentiment (%)", color: "#2563eb" }]}
+                            showHeader={false}
+                            showLegend={false}
+                            height={208}
+                            xTickInterval={chartPeriod === "monthly" ? 4 : "preserveStartEnd"}
+                        />
+                    ) : (
+                        <div className="h-full flex items-center justify-center text-sm text-slate-400">
+                            {loading ? "Loading chart data..." : "No sentiment history data yet. Data will appear once posts are analyzed."}
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -159,99 +238,53 @@ export default function DashboardPage() {
                 {/* Kenya Heatmap */}
                 <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                     <div className="mb-4">
-                        <h3 className="text-sm font-semibold text-slate-900">Kenya Voter Support by County</h3>
-                        <p className="text-xs text-slate-400 mt-0.5">Click a county for details · Hover to view support %</p>
+                        <h3 className="text-sm font-semibold text-slate-900">Ol Kalou Ward Support</h3>
+                        <p className="text-xs text-slate-400 mt-0.5">Based on field reports and social sentiment</p>
                     </div>
-                    <KenyaHeatmap />
+                    <NyandaruaHeatmap />
                 </div>
 
-                {/* Activity Feed */}
+                {/* Activity Feed — from war_room_alerts */}
                 <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
                         <div>
-                            <h3 className="text-sm font-semibold text-slate-900">Campaign Activity Feed</h3>
-                            <p className="text-xs text-slate-400 mt-0.5">Recent events</p>
+                            <h3 className="text-sm font-semibold text-slate-900">Recent Alerts</h3>
+                            <p className="text-xs text-slate-400 mt-0.5">War Room feed</p>
                         </div>
-                        <button className="text-blue-600 text-xs font-semibold hover:underline">View All</button>
                     </div>
                     <div className="space-y-3">
-                        {activityFeed.map((item, i) => {
-                            const Icon = item.icon;
+                        {recentAlerts.length === 0 && !loading && (
+                            <p className="text-sm text-slate-400 text-center py-8">No recent alerts.</p>
+                        )}
+                        {recentAlerts.map((alert, i) => {
+                            const sv = severityIcon[alert.severity ?? "info"] ?? severityIcon.info;
                             const isActive = activeActivity === i;
                             return (
                                 <div
-                                    key={item.title}
+                                    key={alert.id}
                                     onClick={() => setActiveActivity(isActive ? null : i)}
-                                    className={`flex gap-3 p-3 rounded-xl cursor-pointer transition-all border ${isActive ? "border-blue-200 bg-blue-50" : "border-transparent hover:border-slate-100 hover:bg-slate-50"
-                                        }`}
+                                    className={`flex gap-3 p-3 rounded-xl cursor-pointer transition-all border ${isActive ? "border-blue-200 bg-blue-50" : "border-transparent hover:border-slate-100 hover:bg-slate-50"}`}
                                 >
-                                    <div className={`flex-shrink-0 w-9 h-9 rounded-lg ${item.iconBg} flex items-center justify-center ${item.iconColor}`}>
-                                        <Icon className="h-4 w-4" />
+                                    <div className={`shrink-0 w-9 h-9 rounded-lg ${sv.iconBg} flex items-center justify-center ${sv.iconColor}`}>
+                                        <AlertTriangle className="h-4 w-4" />
                                     </div>
                                     <div className="min-w-0">
-                                        <p className="text-sm font-medium text-slate-900">{item.title}</p>
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-sm font-medium text-slate-900">{alert.severity?.toUpperCase()}</p>
+                                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${alert.status === "active" ? "bg-red-50 text-red-600" : alert.status === "responding" ? "bg-amber-50 text-amber-600" : "bg-emerald-50 text-emerald-600"}`}>
+                                                {alert.status}
+                                            </span>
+                                        </div>
                                         <p className={`text-xs text-slate-500 leading-relaxed mt-0.5 transition-all ${isActive ? "" : "line-clamp-1"}`}>
-                                            {item.description}
+                                            {alert.description}
                                         </p>
-                                        <span className="text-[10px] text-slate-400 mt-1 block">{item.time}</span>
+                                        <span className="text-[10px] text-slate-400 mt-1 block">
+                                            {alert.source} · {new Date(alert.created_at ?? "").toLocaleString()}
+                                        </span>
                                     </div>
                                 </div>
                             );
                         })}
-                    </div>
-                </div>
-            </div>
-
-            {/* Bottom Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Email Performance */}
-                <div className="lg:col-span-2 bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                    <div className="mb-5">
-                        <h3 className="text-sm font-semibold text-slate-900">Email Performance</h3>
-                        <p className="text-xs text-slate-400 mt-0.5">Open rate comparison</p>
-                    </div>
-                    <div className="space-y-4">
-                        {emailPerformance.map((email) => {
-                            const color = email.rate >= 85 ? "bg-emerald-500" : email.rate >= 70 ? "bg-blue-600" : "bg-amber-500";
-                            return (
-                                <div key={email.label} className="group">
-                                    <div className="flex justify-between text-xs mb-1.5">
-                                        <span className="font-medium text-slate-700">{email.label}</span>
-                                        <span className={`font-bold px-1.5 py-0.5 rounded text-white text-[10px] ${color}`}>{email.rate}%</span>
-                                    </div>
-                                    <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
-                                        <div
-                                            className={`${color} h-full rounded-full transition-all duration-500 group-hover:brightness-110`}
-                                            style={{ width: `${email.rate}%` }}
-                                        />
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                {/* Key Issues */}
-                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                    <div className="mb-5">
-                        <h3 className="text-sm font-semibold text-slate-900">Key Issue Trends</h3>
-                        <p className="text-xs text-slate-400 mt-0.5">What voters care about</p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                        {keyIssues.map((issue) => (
-                            <button
-                                key={issue.label}
-                                className={`rounded-full ${issue.color} ${sizeClasses[issue.size]} hover:opacity-80 transition-opacity`}
-                            >
-                                {issue.label}
-                            </button>
-                        ))}
-                    </div>
-                    <div className="mt-6 pt-4 border-t border-slate-100">
-                        <div className="flex items-center justify-between text-xs">
-                            <span className="text-slate-500">Top Rising Theme</span>
-                            <span className="text-blue-600 font-semibold">Cost of Living +15%</span>
-                        </div>
                     </div>
                 </div>
             </div>

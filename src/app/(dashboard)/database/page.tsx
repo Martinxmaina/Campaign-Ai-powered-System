@@ -1,76 +1,49 @@
-import { Search, Filter, Download, Plus, ChevronRight } from "lucide-react";
+"use client";
 
-const voters = [
-    {
-        id: "#8829-XJ",
-        name: "Sarah Njeri",
-        email: "sarah.njeri@example.com",
-        phone: "+254 712 345 678",
-        tags: ["Donor", "Volunteer"],
-        lastContact: "2 days ago (Email)",
-        segment: "High Propensity",
-        avatar: "SN",
-    },
-    {
-        id: "#4412-MK",
-        name: "Michael Otieno",
-        email: "michael.otieno@example.com",
-        phone: "+254 701 234 567",
-        tags: ["Undecided"],
-        lastContact: "1 week ago (Door)",
-        segment: "Swing Voter",
-        avatar: "MO",
-    },
-    {
-        id: "#9931-JW",
-        name: "James Kamau",
-        email: "james.kamau@example.com",
-        phone: "+254 733 555 001",
-        tags: ["VIP", "Host"],
-        lastContact: "Live (SMS Chat)",
-        segment: "Influencer",
-        avatar: "JK",
-    },
-    {
-        id: "#5567-LP",
-        name: "Lucy Wambui",
-        email: "lucy.wambui@example.com",
-        phone: "+254 720 111 222",
-        tags: ["Volunteer"],
-        lastContact: "3 days ago (Phone)",
-        segment: "Supporter",
-        avatar: "LW",
-    },
-    {
-        id: "#2211-RT",
-        name: "Robert Tanui",
-        email: "robert.tanui@example.com",
-        phone: "+254 719 999 888",
-        tags: ["Donor", "VIP"],
-        lastContact: "Yesterday (Event)",
-        segment: "High Propensity",
-        avatar: "RT",
-    },
-    {
-        id: "#7788-AS",
-        name: "Amani Salim",
-        email: "amani.salim@example.com",
-        phone: "+254 736 123 890",
-        tags: ["New"],
-        lastContact: "Never",
-        segment: "Cold Lead",
-        avatar: "AS",
-    },
-];
+import { useEffect, useMemo, useState } from "react";
+import { Search, Download, Plus, ChevronRight } from "lucide-react";
+import { getVoterContacts, type VoterContact } from "@/lib/supabase/queries";
+
+function timeAgo(value: string | null) {
+    if (!value) return "Never";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    const diff = Date.now() - date.getTime();
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    if (days <= 0) return "Today";
+    if (days === 1) return "Yesterday";
+    return `${days} days ago`;
+}
 
 export default function DatabasePage() {
+    const [contacts, setContacts] = useState<VoterContact[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [search, setSearch] = useState("");
+
+    useEffect(() => {
+        getVoterContacts(100)
+            .then((data) => setContacts(data))
+            .catch(() => setContacts([]))
+            .finally(() => setLoading(false));
+    }, []);
+
+    const filtered = useMemo(() => {
+        const term = search.trim().toLowerCase();
+        if (!term) return contacts;
+        return contacts.filter((contact) =>
+            [contact.name, contact.phone, contact.ward, contact.support_level]
+                .filter(Boolean)
+                .some((value) => String(value).toLowerCase().includes(term)),
+        );
+    }, [contacts, search]);
+
     return (
-        <div className="p-6 space-y-6">
-            <div className="flex items-center justify-between">
+        <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h1 className="text-xl font-bold text-slate-900">Outreach Database</h1>
+                    <h1 className="text-lg md:text-xl font-bold text-slate-900">Outreach Database</h1>
                     <p className="text-sm text-slate-500 mt-0.5">
-                        Manage contacts, outreach segments, and interaction history across channels.
+                        Real voter contacts, support levels, issues, and last-touch timestamps from the database.
                     </p>
                 </div>
                 <div className="flex gap-2">
@@ -79,45 +52,76 @@ export default function DatabasePage() {
                 </div>
             </div>
 
-            <div className="flex gap-3">
-                <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                    <input
-                        className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none shadow-sm"
-                        placeholder="Search by name, ID, or segment..."
-                    />
-                </div>
-                <button className="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors shadow-sm text-slate-700"><Filter className="h-4 w-4" /> Filters</button>
+            <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none shadow-sm"
+                    placeholder="Search by name, phone, ward, or support level..."
+                />
             </div>
 
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                        <thead><tr className="border-b border-slate-100 text-left text-slate-500 bg-slate-50/50">
-                            <th className="px-6 py-3 font-medium text-xs uppercase tracking-wide">Contact</th>
-                            <th className="px-6 py-3 font-medium text-xs uppercase tracking-wide">Email</th>
-                            <th className="px-6 py-3 font-medium text-xs uppercase tracking-wide">Phone</th>
-                            <th className="px-6 py-3 font-medium text-xs uppercase tracking-wide">Segment</th>
-                            <th className="px-6 py-3 font-medium text-xs uppercase tracking-wide">Tags</th>
-                            <th className="px-6 py-3 font-medium text-xs uppercase tracking-wide">Last Contact</th>
-                            <th className="px-6 py-3 font-medium text-xs uppercase tracking-wide" />
-                        </tr></thead>
-                        <tbody className="divide-y divide-slate-50">
-                            {voters.map((v) => (
-                                <tr key={v.id} className="table-row-hover cursor-pointer group">
-                                    <td className="px-6 py-3"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-[10px] font-bold">{v.avatar}</div><div><p className="font-medium text-slate-900">{v.name}</p><p className="text-[10px] text-slate-400">{v.id}</p></div></div></td>
-                                    <td className="px-6 py-3 text-xs text-slate-600">{v.email}</td>
-                                    <td className="px-6 py-3 text-xs text-slate-600">{v.phone}</td>
-                                    <td className="px-6 py-3"><span className="text-xs font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">{v.segment}</span></td>
-                                    <td className="px-6 py-3"><div className="flex gap-1">{v.tags.map((t) => (<span key={t} className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-50 text-blue-600">{t}</span>))}</div></td>
-                                    <td className="px-6 py-3 text-xs text-slate-500">{v.lastContact}</td>
-                                    <td className="px-6 py-3"><ChevronRight className="h-4 w-4 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" /></td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+            {loading ? (
+                <div className="rounded-xl border border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-500">
+                    Loading contacts from the database...
                 </div>
-            </div>
+            ) : filtered.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-slate-300 bg-white px-4 py-8 text-center">
+                    <h2 className="text-sm font-medium text-slate-900">No contacts found</h2>
+                    <p className="mt-1 text-xs text-slate-500">Add records to `voter_contacts` to populate this page.</p>
+                </div>
+            ) : (
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="border-b border-slate-100 text-left text-slate-500 bg-slate-50/50">
+                                    <th className="px-4 py-3 font-medium text-xs uppercase tracking-wide sm:px-6">Contact</th>
+                                    <th className="px-4 py-3 font-medium text-xs uppercase tracking-wide sm:px-6">Phone</th>
+                                    <th className="px-4 py-3 font-medium text-xs uppercase tracking-wide sm:px-6">Ward</th>
+                                    <th className="px-4 py-3 font-medium text-xs uppercase tracking-wide sm:px-6">Support</th>
+                                    <th className="px-4 py-3 font-medium text-xs uppercase tracking-wide sm:px-6">Issues</th>
+                                    <th className="px-4 py-3 font-medium text-xs uppercase tracking-wide sm:px-6">Last Contact</th>
+                                    <th className="px-4 py-3 font-medium text-xs uppercase tracking-wide sm:px-6" />
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-50">
+                                {filtered.map((contact) => {
+                                    const initials = (contact.name ?? "NA").split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase();
+                                    return (
+                                        <tr key={contact.id} className="table-row-hover cursor-pointer group">
+                                            <td className="px-4 py-3 sm:px-6">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-full bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-[10px] font-bold">
+                                                        {initials}
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-medium text-slate-900">{contact.name ?? "Unnamed contact"}</p>
+                                                        <p className="text-[10px] text-slate-400">{contact.source ?? "Source not set"}</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-3 text-xs text-slate-600 sm:px-6">{contact.phone ?? "—"}</td>
+                                            <td className="px-4 py-3 text-xs text-slate-600 sm:px-6">{contact.ward ?? "—"}</td>
+                                            <td className="px-4 py-3 sm:px-6">
+                                                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                                                    {contact.support_level ?? "Unknown"}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3 text-xs text-slate-600 sm:px-6">
+                                                {(contact.issues ?? []).length > 0 ? (contact.issues ?? []).join(", ") : "—"}
+                                            </td>
+                                            <td className="px-4 py-3 text-xs text-slate-500 sm:px-6">{timeAgo(contact.last_contact)}</td>
+                                            <td className="px-4 py-3 sm:px-6"><ChevronRight className="h-4 w-4 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" /></td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

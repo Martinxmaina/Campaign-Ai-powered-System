@@ -15,7 +15,7 @@ export async function updateSession(request: NextRequest) {
                     return request.cookies.getAll()
                 },
                 setAll(cookiesToSet) {
-                    cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+                    cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
                     supabaseResponse = NextResponse.next({
                         request,
                     })
@@ -27,38 +27,45 @@ export async function updateSession(request: NextRequest) {
         }
     )
 
-    // IMPORTANT: Avoid writing any logic between createServerClient and
-    // supabase.auth.getUser(). A simple mistake could make it very hard to debug
-    // issues with users being randomly logged out.
-
     const {
         data: { user },
     } = await supabase.auth.getUser()
 
-    // TODO: Re-enable auth redirect once login is wired to Supabase
-    // if (
-    //     !user &&
-    //     !request.nextUrl.pathname.startsWith('/login') &&
-    //     !request.nextUrl.pathname.startsWith('/auth')
-    // ) {
-    //     // no user, potentially respond by redirecting the user to the login page
-    //     const url = request.nextUrl.clone()
-    //     url.pathname = '/login'
-    //     return NextResponse.redirect(url)
-    // }
+    // Redirect unauthenticated users to login.
+    // API routes manage their own Bearer-token auth — the cookie-based redirect
+    // does not apply to them (n8n and other server callers have no cookies).
+    // Public non-API pages: /login, /auth, /field, /survey (anonymous survey respondents).
+    const pathname = request.nextUrl.pathname
+    const isPublicRoute =
+        pathname === '/' ||
+        pathname.startsWith('/login') ||
+        pathname.startsWith('/auth') ||
+        pathname.startsWith('/field') ||
+        pathname.startsWith('/survey') ||
+        pathname.startsWith('/api')  // API routes self-guard via requireAuth()
 
-    // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're
-    // creating a new response object with NextResponse.next() make sure to:
-    // 1. Pass the request in it, like so:
-    //    const myNewResponse = NextResponse.next({ request })
-    // 2. Copy over the cookies, like so:
-    //    myNewResponse.cookies.setAll(supabaseResponse.cookies.getAll())
-    // 3. Change the myNewResponse object to fit your needs, but avoid changing
-    //    the cookies!
-    // 4. Finally:
-    //    return myNewResponse
-    // If this is not done, you may be causing the browser and server to go out
-    // of sync and terminate the user's session prematurely!
+    if (!user && !isPublicRoute) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/login'
+        return NextResponse.redirect(url)
+    }
+
+    // Redirect authenticated users away from login
+    if (user && pathname.startsWith('/login')) {
+        const role = user.user_metadata?.role ?? 'campaign-manager'
+        const homeMap: Record<string, string> = {
+            'super-admin': '/admin/overview',
+            'campaign-manager': '/dashboard',
+            research: '/research',
+            comms: '/comms',
+            finance: '/finance',
+            'call-center': '/call-center',
+            media: '/media',
+        }
+        const url = request.nextUrl.clone()
+        url.pathname = homeMap[role] ?? '/dashboard'
+        return NextResponse.redirect(url)
+    }
 
     return supabaseResponse
 }

@@ -33,8 +33,13 @@ const rolePrefixAccess: Record<CurrentUserRole, string[]> = {
         "/performance",
         "/assistant",
         "/admin/assistant",
+        "/admin/countdown",
         "/opposition",
         "/opposition-ads",
+        "/candidates",
+        "/candidate-intel",
+        "/parties",
+        "/account",
     ],
     research: [
         "/dashboard",
@@ -44,6 +49,10 @@ const rolePrefixAccess: Record<CurrentUserRole, string[]> = {
         "/assistant",
         "/opposition",
         "/opposition-ads",
+        "/candidates",
+        "/candidate-intel",
+        "/parties",
+        "/account",
     ],
     comms: [
         "/dashboard",
@@ -58,6 +67,7 @@ const rolePrefixAccess: Record<CurrentUserRole, string[]> = {
         "/social",
         "/opposition",
         "/opposition-ads",
+        "/account",
     ],
     finance: [
         "/dashboard",
@@ -66,9 +76,10 @@ const rolePrefixAccess: Record<CurrentUserRole, string[]> = {
         "/admin/overview",
         "/admin/assistant",
         "/admin/audit-trail",
+        "/account",
     ],
-    "call-center": ["/dashboard", "/call-center"],
-    media: ["/dashboard", "/media"],
+    "call-center": ["/dashboard", "/call-center", "/account"],
+    media: ["/dashboard", "/media", "/account"],
 }
 
 const roleHomes: Record<CurrentUserRole, string> = {
