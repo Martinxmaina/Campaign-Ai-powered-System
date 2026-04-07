@@ -161,6 +161,7 @@ export function ProductShowcase() {
                   fill
                   className="object-cover object-top"
                   priority={active === 0}
+                  unoptimized
                   onError={() =>
                     setImgError((prev) => ({ ...prev, [currentTab.id]: true }))
                   }
